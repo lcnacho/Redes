@@ -18,7 +18,9 @@ Es la única decisión creativa del proceso: Claude lo escribe leyendo `_work/tr
 | `palabras_clave` | Palabras que van en color de acento en los subtítulos | no |
 | `tarjetas` | `{en: wId, dur: s, texto, sfx?}`: cartel de máx. 6 palabras arriba | no |
 | `efectos` | `lista` o `numero` (ver abajo) | no |
-| `zooms` | `{en: wId, tipo: "suave" \| "punch"}` | no |
+| `zooms` | `{en: wId, tipo}`: `suave` (112 %), `punch` (122 % de golpe), `out` (arranca en 120 % y se abre), `lento` (empuje continuo hasta el próximo corte), `shake` (temblor con sonido grave) | no |
+| `transiciones` | `{en: wId, tipo}` en la primera palabra después de un corte: `whip`, `flash`, `zoom`, `glitch`, `light-leak`. Cada una trae su sonido | no |
+| `transicion_hook` | Transición al salir del hook: `auto` (default, según el estilo), un tipo concreto o `ninguna` | no |
 | `sfx` | `{en: wId, nombre: "whoosh", vol?: 0.6}` además de los automáticos | no |
 | `musica` | Ruta dentro de la librería, ej. `musica/lofi-01.mp3` | no |
 | `subtitulos` | `{color, acento}` para cambiar colores | no |

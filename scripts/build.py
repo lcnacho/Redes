@@ -272,7 +272,7 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
     # --- hook: tarjeta según estilo
     if hook:
         hid = c.uid("hook")
-        dur = max(1.2, hook_end + 0.25)
+        dur = max(1.2, hook_end + 0.05)   # se va justo cuando entra el primer subtítulo
         freeze_end = sum(sg["dur"] for sg in segs if sg["kind"] == "freeze")
         if estilo == "congelado":
             dur = freeze_end + 0.15   # el cartel acompaña solo el congelado; después hablan los subtítulos
@@ -334,7 +334,7 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
                 c.js.append(f'tl.to("#{hid} .hks", {{clipPath: "inset(0 0% 0 0)", duration: 0.35, ease: "power2.inOut"}}, 0.6);')
             else:
                 c.js.append(f'tl.from("#{hid} .hk", {{y: 40, opacity: 0, duration: 0.3, ease: "power3.out"}}, 0.1);')
-            c.js.append(f'tl.to("#{hid} .hk, #{hid} .hk2, #{hid} .hks", {{opacity: 0, duration: 0.15, ease: "power2.in"}}, {dur - 0.27:.3f});')
+            c.js.append(f'tl.to("#{hid} .hk, #{hid} .hk2, #{hid} .hks", {{opacity: 0, duration: 0.12, ease: "power2.in"}}, {dur - 0.2:.3f});')
         c.events.append(0.0)
         if HOOK_SFX.get(estilo):
             c.sfx.append((0.05, HOOK_SFX[estilo], 0.55))   # que no tape la voz del hook
@@ -421,6 +421,23 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
             continue
         c.events.append(t)
 
+    # --- transiciones en los cortes (plan.transiciones + una automática al salir del hook)
+    trans = []
+    for tr in plan.get("transiciones", []):
+        t = word_time(wmap, tr["en"])
+        if t is None:
+            continue
+        near = min(seams, key=lambda x: abs(x - t), default=None)
+        trans.append((near if near is not None and abs(near - t) < 0.6 else t, tr.get("tipo", "whip")))
+    if hook and seams and plan.get("transicion_hook", "auto") != "ninguna":
+        tipo = plan.get("transicion_hook", "auto")
+        if tipo == "auto":
+            tipo = {"bn-dramatico": "flash", "numero-impactante": "zoom", "pantalla-negra": "flash",
+                    "congelado": "glitch"}.get(estilo, "whip")
+        trans.append((min(seams, key=lambda x: abs(x - hook_end)), tipo))
+    trans = sorted(set(trans))
+    c.events += [t for t, _ in trans]
+
     # --- zooms (en un wrapper del video, nunca en el <video>)
     zooms = sorted(((word_time(wmap, z["en"]), z.get("tipo", "suave")) for z in plan.get("zooms", [])
                     if word_time(wmap, z["en"]) is not None), key=lambda x: x[0])
@@ -437,17 +454,93 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
             auto += 1
         prev = e
     zooms.sort(key=lambda x: x[0])
-    for i, (t, kind) in enumerate(zooms):
-        nxt = zooms[i + 1][0] if i + 1 < len(zooms) else total
+    scale_zooms = [z for z in zooms if z[1] != "shake"]
+    for i, (t, kind) in enumerate(scale_zooms):
+        nxt = scale_zooms[i + 1][0] if i + 1 < len(scale_zooms) else total
         end = min(nxt, t + 3.0)
         snap = next((s for s in seams if t + 1.2 <= s <= end), end)
-        scale = {"punch": 1.22, "suave": 1.12, "auto": 1.06}[kind]
         if kind == "punch":
-            c.js.append(f'tl.set("#camzoom", {{scale: {scale}}}, {t:.3f});')
+            c.js.append(f'tl.set("#camzoom", {{scale: 1.22}}, {t:.3f});')
+        elif kind == "out":       # arranca cerca y se abre: revela el lugar
+            c.js.append(f'tl.set("#camzoom", {{scale: 1.2}}, {t:.3f});')
+            c.js.append(f'tl.to("#camzoom", {{scale: 1, duration: 0.9, ease: "power2.out"}}, {t:.3f});')
+        elif kind == "lento":     # empuje continuo hasta el próximo corte
+            snap = next((s for s in seams if s > t + 0.5), end)
+            c.js.append(f'tl.fromTo("#camzoom", {{scale: 1}}, {{scale: 1.1, duration: {max(0.5, snap - t):.3f}, '
+                        f'ease: "sine.inOut"}}, {t:.3f});')
         else:
+            scale = {"suave": 1.12, "auto": 1.06}.get(kind, 1.12)
             c.js.append(f'tl.to("#camzoom", {{scale: {scale}, duration: 0.55, ease: "power2.out"}}, {t:.3f});')
-        if snap < total - 0.05:
+        if snap < total - 0.05 and kind != "out":
             c.js.append(f'tl.set("#camzoom", {{scale: 1}}, {snap:.3f});')
+    for t, kind in zooms:
+        if kind == "shake":       # temblor que se apaga, para remates e impactos
+            for k, (dx, dy) in enumerate([(18, -12), (-15, 10), (12, 8), (-9, -6), (6, 4), (0, 0)]):
+                c.js.append(f'tl.to("#camshake", {{x: {dx}, y: {dy}, duration: 0.05, ease: "none"}}, {t + k * 0.05:.3f});')
+            c.sfx.append((t, "rumble", 0.6))
+
+    # --- transiciones (después de los zooms para que manden en el momento del corte)
+    for t, tipo in trans:
+        tid = c.uid("tr")
+        if tipo == "whip":        # latigazo: la imagen sale hacia un lado y entra desde el otro, con una estela
+            # el zoom de 1.32 mientras se mueve tapa los bordes negros que dejaría el desplazamiento
+            c.js.append(f'tl.to("#camshake", {{x: -160, scale: 1.32, duration: 0.09, ease: "power2.in"}}, {max(0, t - 0.09):.3f});')
+            c.js.append(f'tl.set("#camshake", {{x: 160}}, {t:.3f});')
+            c.js.append(f'tl.to("#camshake", {{x: 0, scale: 1, duration: 0.14, ease: "power2.out"}}, {t:.3f});')
+            c.html.append(f'<div id="{tid}" class="clip" data-start="{max(0, t - 0.12):.3f}" data-duration="0.3" '
+                          f'data-track-index="7" style="position:absolute;inset:0;z-index:30;overflow:hidden">'
+                          f'<div class="st" style="position:absolute;top:0;bottom:0;left:-60%;width:60%;'
+                          f'background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.35),rgba(255,255,255,0))">'
+                          f'</div></div>')
+            c.js.append(f'tl.fromTo("#{tid} .st", {{x: 0}}, {{x: 1750, duration: 0.26, ease: "power1.inOut"}}, {max(0, t - 0.12):.3f});')
+            c.sfx.append((max(0, t - 0.12), "whip", 0.7))
+        elif tipo == "flash":     # destello blanco sobre el corte
+            c.html.append(f'<div id="{tid}" class="clip" data-start="{max(0, t - 0.08):.3f}" data-duration="0.4" '
+                          f'data-track-index="7" style="position:absolute;inset:0;z-index:30">'
+                          f'<div class="fl" style="position:absolute;inset:0;background:#fff;opacity:0"></div></div>')
+            c.js.append(f'tl.to("#{tid} .fl", {{opacity: 0.9, duration: 0.07, ease: "power1.in"}}, {max(0, t - 0.08):.3f});')
+            c.js.append(f'tl.to("#{tid} .fl", {{opacity: 0, duration: 0.28, ease: "power2.out"}}, {t:.3f});')
+            c.sfx.append((max(0, t - 0.08), "flash", 0.6))
+        elif tipo == "zoom":      # zoom-through: entra con zoom hacia el corte y sale abriendo
+            c.js.append(f'tl.to("#camzoom", {{scale: 1.4, duration: 0.16, ease: "power2.in"}}, {max(0, t - 0.16):.3f});')
+            c.js.append(f'tl.set("#camzoom", {{scale: 1.35}}, {t:.3f});')
+            c.js.append(f'tl.to("#camzoom", {{scale: 1, duration: 0.28, ease: "power2.out"}}, {t:.3f});')
+            c.sfx.append((max(0, t - 0.3), "swoosh-up", 0.65))
+        elif tipo == "glitch":    # saltos horizontales y franjas de color
+            for k, dx in enumerate([-34, 26, -20, 38, -14, 0]):
+                c.js.append(f'tl.set("#camshake", {{x: {dx}}}, {t - 0.1 + k * 0.034:.3f});')
+            bars = "".join(f'<div style="position:absolute;left:0;right:0;top:{y}px;height:{h}px;background:{col};'
+                           f'mix-blend-mode:screen;opacity:.55"></div>'
+                           for y, h, col in ((420, 26, "#ff0040"), (980, 14, "#00e5ff"), (1400, 22, "#ff0040")))
+            c.html.append(f'<div id="{tid}" class="clip" data-start="{max(0, t - 0.1):.3f}" data-duration="0.2" '
+                          f'data-track-index="7" style="position:absolute;inset:0;z-index:30">{bars}</div>')
+            c.sfx.append((max(0, t - 0.1), "glitch-02", 0.6))
+        elif tipo == "light-leak":  # destello de luz cálida (overlay de la librería en modo screen)
+            src_ll = find_lib("overlays/light-leak-01.mp4")
+            src_ll2 = find_lib("overlays/light-leak-02.mp4")
+            if not src_ll:
+                print("aviso: falta overlays/light-leak-01.mp4 en la librería; uso flash")
+                trans.append((t, "flash"))
+                continue
+            os.makedirs(os.path.join(proj, "assets", "overlays"), exist_ok=True)
+            shutil.copy(src_ll, os.path.join(proj, "assets", "overlays", "light-leak-01.mp4"))
+            c.html.append(f'<div id="{tid}w" style="position:absolute;inset:0;z-index:30;opacity:0;mix-blend-mode:screen">'
+                          f'<video id="{tid}" class="clip" src="assets/overlays/light-leak-01.mp4" muted playsinline '
+                          f'data-start="{max(0, t - 0.35):.3f}" data-duration="1.0" data-track-index="7" '
+                          f'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video></div>')
+            if src_ll2:  # dos manchas de luz superpuestas: una sola queda muy tenue sobre exteriores
+                shutil.copy(src_ll2, os.path.join(proj, "assets", "overlays", "light-leak-02.mp4"))
+                c.html.append(f'<div id="{tid}v" style="position:absolute;inset:0;z-index:31;opacity:0;mix-blend-mode:screen">'
+                              f'<video id="{tid}b" class="clip" src="assets/overlays/light-leak-02.mp4" muted playsinline '
+                              f'data-start="{max(0, t - 0.35):.3f}" data-duration="1.0" data-track-index="7" '
+                              f'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video></div>')
+                c.js.append(f'tl.to("#{tid}v", {{opacity: 1, duration: 0.3, ease: "power1.in"}}, {max(0, t - 0.3):.3f});')
+                c.js.append(f'tl.to("#{tid}v", {{opacity: 0, duration: 0.6, ease: "power2.out"}}, {t + 0.1:.3f});')
+            c.js.append(f'tl.to("#{tid}w", {{opacity: 1, duration: 0.3, ease: "power1.in"}}, {max(0, t - 0.35):.3f});')
+            c.js.append(f'tl.to("#{tid}w", {{opacity: 0, duration: 0.6, ease: "power2.out"}}, {t + 0.05:.3f});')
+            c.sfx.append((max(0, t - 0.2), "flash", 0.5))
+        else:
+            print(f"aviso: transición '{tipo}' no existe (whip, flash, zoom, glitch, light-leak)")
 
     # --- efectos de sonido (sin dos golpes a menos de 0.35 s)
     placed = []
@@ -505,9 +598,11 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
 </head>
 <body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="{total:.3f}" data-width="{W}" data-height="{H}">
-  <div id="camzoom" style="position:absolute;inset:0;transform-origin:50% 40%">
-    <video id="aroll" class="clip" src="assets/aroll.mp4" playsinline data-start="0" data-duration="{total:.3f}"
-      data-has-audio="true" data-track-index="0" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>
+  <div id="camshake" style="position:absolute;inset:0">
+    <div id="camzoom" style="position:absolute;inset:0;transform-origin:50% 40%">
+      <video id="aroll" class="clip" src="assets/aroll.mp4" playsinline data-start="0" data-duration="{total:.3f}"
+        data-has-audio="true" data-track-index="0" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>
+    </div>
   </div>
   {chr(10).join("  " + h for h in c.html)}
 </div>
@@ -521,7 +616,7 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
 </html>
 """
     open(os.path.join(proj, "index.html"), "w").write(page)
-    return {"auto_zooms": auto, "sfx": len(placed), "hook_end": round(hook_end, 2), "estilo": estilo if hook else None}
+    return {"auto_zooms": auto, "transiciones": len(trans), "sfx": len(placed), "hook_end": round(hook_end, 2), "estilo": estilo if hook else None}
 
 
 def master(raw, out):
@@ -589,7 +684,7 @@ def main():
             print(f"[{vid}] listo: {out}")
         notes.append(f"Variante {vid}: estilo de hook '{(hook or {}).get('estilo', '-')}', "
                      f"texto '{(hook or {}).get('texto', '')}', duración {total:.1f} s, {len(segs)} tramos, "
-                     f"{info['sfx']} sonidos, {info['auto_zooms']} zooms automáticos")
+                     f"{info['sfx']} sonidos, {info['transiciones']} transiciones, {info['auto_zooms']} zooms automáticos")
 
     first = os.path.join(out_dir, f"final_{(hooks[0] or {}).get('id', 'A')}.mp4")
     if os.path.isfile(first):  # miniatura: un cuadro del hook, con el texto ya en pantalla

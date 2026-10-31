@@ -49,7 +49,9 @@ Leé `transcript.md` completo, mirá `frames.jpg` (encuadre, dónde está la car
 2. El cuerpo: solo lo que lleva al remate. 15–45 s en total.
 3. `cortar`: relleno, tomas malas, repeticiones que el automático no vio (mirá palabras repetidas como "do doing").
 4. `correcciones`: nombres propios y errores del transcriptor (países, marcas, nombres).
-5. Un evento visual cada 3–5 s: tarjetas, `numero`, `lista`, zooms. Con motivo, no por llenar.
+5. Un evento visual cada 3–5 s: tarjetas, `numero`, `lista`, zooms (`suave`, `punch`, `out`, `lento`, `shake`). Con motivo, no por llenar.
+   Transiciones (`whip`, `flash`, `zoom`, `glitch`, `light-leak`) solo en cambios de tema o de lugar, una cada 6–10 s (ver "Cómo elegir transiciones" en `rules/efectos.md`).
+   Música: elegí una de `catalogo.json` según la energía del video; bajo la voz se agacha sola.
 6. Las marcas del guion (`[ZOOM]`, `[EFECTO: ...]`, `[SFX: ...]`, `[TEXTO: ...]`) pasan al plan ancladas a la palabra más cercana.
 
 Si el bruto no tiene un hook usable o el audio es malo, no inventes: marcá el video con `scripts/drive.sh fail <carpeta> "<motivo>"` y seguí con el próximo.

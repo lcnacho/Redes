@@ -11,11 +11,25 @@ _Recursos/
 ├── overlays/          luces, grano, polvo (video con alfa o en modo screen)
 ├── luts/              .cube para gradear
 ├── animaciones/       Lottie (.json)
-├── stickers-emojis/   Fluent Emoji (MIT)
 ├── fuentes/           .woff2 / .ttf
 ├── marca/             logo, colores
 └── efectos-propios/
 ```
+
+## Kit inicial (ya está en Drive)
+`scripts/build_library.py` lo arma y se sube con `rclone copy`. Todo es propio o con licencia libre:
+
+| Carpeta | Qué hay | Origen y licencia |
+| --- | --- | --- |
+| `sonidos/` | 23 efectos: whoosh (3), whip, swoosh-up, hit-whoosh, pop (3), click (2), impacto (2), riser (2), rumble, flash, glitch (2), tick, ding, error, scratch | Sintetizados acá, propios |
+| `musica/` | `base-tranquila-provisoria.mp3` (84 bpm, lo-fi) y `base-tension-provisoria.mp3` (100 bpm) | Sintetizadas, propias. **Provisorias**: reemplazar por música de Pixabay Music |
+| `overlays/` | `grano-01.mp4`, `light-leak-01.mp4`, `light-leak-02.mp4` | Generados con ffmpeg, propios |
+| `luts/` | `calido.cube`, `teal-orange.cube`, `bn-contraste.cube` | Generados, propios |
+| `iconos/` | 20 íconos Lucide (check, truck, ship, factory, dollar-sign...) | Lucide, ISC |
+| `fuentes/` | Anton, Bebas Neue, Montserrat 800/900 | Google Fonts vía @fontsource, OFL |
+| `animaciones/` | `lottie.min.js` (reproductor) | lottie-web, MIT |
+
+Lo que falta y hay que subir a mano (desde el entorno cloud no se llega a esos sitios): música real de Pixabay Music, sonidos de Pixabay/Mixkit si se quieren más naturales, animaciones Lottie.
 
 ## Cómo se usan los sonidos
 `build.py` busca `sonidos/<nombre>.(wav|mp3|ogg|m4a)` en la librería de Drive; si no está, usa la versión sintetizada de `library/sonidos-base/` (la genera `scripts/gen_sfx.sh`). Para mejorar un sonido, subí a `_Recursos/sonidos/` un archivo con el mismo nombre: no hay que tocar código.
