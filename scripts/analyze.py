@@ -15,7 +15,8 @@ import argparse
 import json
 import re
 
-FILLERS = {"um", "uh", "uhm", "umm", "erm", "er", "ah", "eh", "hmm", "mm", "mhm"}
+# muletillas en inglés y español ("este" y "o sea" no: también son palabras con sentido)
+FILLERS = {"um", "uh", "uhm", "umm", "erm", "er", "ah", "eh", "ehh", "em", "emm", "hmm", "mm", "mmm", "mhm"}
 END_PUNCT = re.compile(r"[.!?]$")
 
 

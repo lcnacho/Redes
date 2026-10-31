@@ -36,6 +36,12 @@ HF_BIN = os.path.join(REPO, "node_modules", ".bin", "hyperframes")
 TREATMENT = {
     "bn-dramatico": "hue=s=0,eq=contrast=1.35:brightness=-0.02,noise=alls=16:allf=t+u",
 }
+# Alturas (px desde arriba) de cada texto. "medio" sirve cuando la cara ocupa la parte de arriba
+# del cuadro (por ejemplo, video con cámara doble y la selfie en una esquina superior).
+ZONAS = {
+    "arriba": {"hook": 330, "hook2": 600, "negra": 760, "tarjeta": 300, "lista": 250, "numero": 420, "subs": 1110},
+    "medio": {"hook": 860, "hook2": 1110, "negra": 860, "tarjeta": 860, "lista": 800, "numero": 820, "subs": 1190},
+}
 HOOK_SFX = {"bn-dramatico": "impacto", "numero-impactante": "impacto", "congelado": "scratch",
             "stop-doing": "whoosh", "pantalla-negra": "riser"}
 
@@ -252,6 +258,7 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
     seams = [s["out_start"] for s in segs[1:]]
     estilo = (hook or {}).get("estilo", "titular")
     hook_text = (hook or {}).get("texto", "")
+    Y = ZONAS[plan.get("zona_texto", "arriba")]
 
     # --- hook: tarjeta según estilo
     if hook:
@@ -279,7 +286,7 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
                 c.html.append(f'<div id="{wid}" class="clip" data-start="{w["o_start"]:.3f}" '
                               f'data-duration="{max(0.05, end - w["o_start"]):.3f}" data-track-index="4" '
                               f'style="position:absolute;inset:0;z-index:21">'
-                              f'<div class="bw" style="position:absolute;left:{SAFE_X}px;width:{SAFE_W}px;top:760px;'
+                              f'<div class="bw" style="position:absolute;left:{SAFE_X}px;width:{SAFE_W}px;top:{Y["negra"]}px;'
                               f'text-align:center;font:900 96px/1.08 Inter;color:#fff;text-transform:uppercase">'
                               f'{esc(shown)}</div></div>')
         else:
@@ -294,18 +301,18 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
                 fill = "#FF3B30"
             elif estilo == "bn-dramatico":
                 size = 104
-            inner = (f'<div class="hk" style="position:absolute;left:{SAFE_X}px;width:{SAFE_W}px;top:330px;'
+            inner = (f'<div class="hk" style="position:absolute;left:{SAFE_X}px;width:{SAFE_W}px;top:{Y["hook"]}px;'
                      f'text-align:center;font:900 {size}px/1.05 Inter;color:{fill};text-transform:uppercase;'
                      f'letter-spacing:-1px;text-shadow:0 6px 24px rgba(0,0,0,.65),0 2px 0 rgba(0,0,0,.9)">{esc(big)}')
             inner += '</div>'
             if estilo == "stop-doing":
                 # copia tachada encima, revelada de izquierda a derecha con clip-path
-                inner += (f'<div class="hks" style="position:absolute;left:{SAFE_X}px;width:{SAFE_W}px;top:330px;'
+                inner += (f'<div class="hks" style="position:absolute;left:{SAFE_X}px;width:{SAFE_W}px;top:{Y["hook"]}px;'
                           f'text-align:center;font:900 {size}px/1.05 Inter;color:transparent;text-transform:uppercase;'
                           f'letter-spacing:-1px;text-decoration:line-through;text-decoration-color:#fff;'
                           f'text-decoration-thickness:10px;clip-path:inset(0 100% 0 0)">{esc(big)}</div>')
             if small:
-                inner += (f'<div class="hk2" style="position:absolute;left:{SAFE_X}px;width:{SAFE_W}px;top:600px;'
+                inner += (f'<div class="hk2" style="position:absolute;left:{SAFE_X}px;width:{SAFE_W}px;top:{Y["hook2"]}px;'
                           f'text-align:center;font:900 64px/1.1 Inter;color:{color};text-transform:uppercase;'
                           f'text-shadow:0 4px 18px rgba(0,0,0,.7)">{esc(small)}</div>')
             c.html.append(f'<div id="{hid}" class="clip" data-start="0.1" data-duration="{dur - 0.1:.3f}" '
@@ -335,7 +342,7 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
             spans.append(f'<span style="color:{col}">{esc(w["cap"])}</span>')
         c.html.append(f'<div id="{gid}" class="clip" data-start="{g["start"]:.3f}" data-duration="{g["end"] - g["start"]:.3f}" '
                       f'data-track-index="2" style="position:absolute;inset:0;z-index:10">'
-                      f'<div class="cl" style="position:absolute;left:{SAFE_X}px;width:{SAFE_W}px;top:1110px;'
+                      f'<div class="cl" style="position:absolute;left:{SAFE_X}px;width:{SAFE_W}px;top:{Y["subs"]}px;'
                       f'text-align:center;font:900 92px/1.06 Inter;letter-spacing:-0.5px;'
                       f'text-shadow:0 0 3px #000,0 0 3px #000,0 5px 14px rgba(0,0,0,.75)">{" ".join(spans)}</div></div>')
         c.js.append(f'tl.from("#{gid} .cl", {{scale: 0.86, opacity: 0, duration: 0.1, ease: "power2.out"}}, {g["start"]:.3f});')
@@ -349,7 +356,7 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
         cid = c.uid("card")
         c.html.append(f'<div id="{cid}" class="clip" data-start="{t:.3f}" data-duration="{d:.3f}" data-track-index="5" '
                       f'style="position:absolute;inset:0;z-index:15"><div class="cd" style="position:absolute;left:{SAFE_X}px;'
-                      f'width:{SAFE_W}px;top:300px;text-align:center"><span style="display:inline-block;padding:18px 30px;'
+                      f'width:{SAFE_W}px;top:{Y["tarjeta"]}px;text-align:center"><span style="display:inline-block;padding:18px 30px;'
                       f'background:{accent};color:#111;font:900 70px/1.08 Inter;text-transform:uppercase;border-radius:14px;'
                       f'box-shadow:0 10px 30px rgba(0,0,0,.35)">{esc(card["texto"])}</span></div></div>')
         c.js.append(f'tl.from("#{cid} .cd", {{y: -30, scale: 0.9, opacity: 0, duration: 0.25, ease: "back.out(1.8)"}}, {t:.3f});')
@@ -379,7 +386,7 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
                      f'{esc(ef["titulo"])}</div>') if ef.get("titulo") else ""
             c.html.append(f'<div id="{eid}" class="clip" data-start="{t:.3f}" data-duration="{d:.3f}" data-track-index="6" '
                           f'style="position:absolute;inset:0;z-index:16"><div class="pn" style="position:absolute;left:{SAFE_X}px;'
-                          f'width:{SAFE_W}px;top:250px;padding:36px 40px;box-sizing:border-box;border-radius:28px;'
+                          f'width:{SAFE_W}px;top:{Y["lista"]}px;padding:36px 40px;box-sizing:border-box;border-radius:28px;'
                           f'background:rgba(15,16,22,.78);backdrop-filter:blur(22px);border:1px solid rgba(255,255,255,.14)">'
                           f'{title}{rows}</div></div>')
             c.js.append(f'tl.from("#{eid} .pn", {{y: -40, opacity: 0, duration: 0.3, ease: "power3.out"}}, {t:.3f});')
@@ -395,7 +402,7 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
             d = float(ef.get("dur", 1.8))
             c.html.append(f'<div id="{eid}" class="clip" data-start="{t:.3f}" data-duration="{d:.3f}" data-track-index="6" '
                           f'style="position:absolute;inset:0;z-index:16"><div class="nm" style="position:absolute;left:{SAFE_X}px;'
-                          f'width:{SAFE_W}px;top:420px;text-align:center;font:900 220px/1 Inter;color:{accent};'
+                          f'width:{SAFE_W}px;top:{Y["numero"]}px;text-align:center;font:900 220px/1 Inter;color:{accent};'
                           f'text-shadow:0 8px 30px rgba(0,0,0,.6)">{esc(ef["texto"])}</div></div>')
             c.js.append(f'tl.from("#{eid} .nm", {{scale: 0.2, opacity: 0, duration: 0.35, ease: "back.out(2.4)"}}, {t:.3f});')
             c.js.append(f'tl.to("#{eid} .nm", {{opacity: 0, scale: 1.1, duration: 0.2}}, {t + d - 0.22:.3f});')

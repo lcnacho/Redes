@@ -21,6 +21,7 @@ Es la única decisión creativa del proceso: Claude lo escribe leyendo `_work/tr
 | `sfx` | `{en: wId, nombre: "whoosh", vol?: 0.6}` además de los automáticos | no |
 | `musica` | Ruta dentro de la librería, ej. `musica/lofi-01.mp3` | no |
 | `subtitulos` | `{color, acento}` para cambiar colores | no |
+| `zona_texto` | `"arriba"` (default) o `"medio"`: bajá los textos cuando la cara ocupa la parte de arriba (video con cámara doble, selfie arriba) | no |
 
 ### Efectos implementados
 - `{"tipo": "lista", "en": "w40", "titulo": "3 things", "items": ["A","B","C"], "items_en": ["w41","w45","w49"], "dur": 5}`: panel con ticks que aparecen cuando decís cada ítem (si no hay `items_en`, se reparten).

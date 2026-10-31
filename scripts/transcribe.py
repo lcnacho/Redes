@@ -6,7 +6,8 @@ Uso:
   python3 scripts/transcribe.py camara.mp4 -o words.json --engine whisper
 
 Motores:
-  parakeet  (default) NVIDIA Parakeet TDT 0.6B v2 via sherpa-onnx. Solo inglés.
+  parakeet  (default) NVIDIA Parakeet TDT 0.6B v3 via sherpa-onnx. 25 idiomas europeos
+            (inglés y español incluidos), detecta el idioma solo.
             El modelo se baja de GitHub, así que funciona con red limitada.
             Conserva repeticiones ("you want you want"), útil para detectar tomas repetidas.
   whisper   faster-whisper large-v3-turbo con word_timestamps. Multilenguaje.
@@ -23,7 +24,7 @@ import sys
 
 SR = 16000
 MODELS_DIR = os.environ.get("EDICION_MODELS", os.path.expanduser("~/.cache/edicion/models"))
-PARAKEET = os.path.join(MODELS_DIR, "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8")
+PARAKEET = os.path.join(MODELS_DIR, "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8")
 VAD = os.path.join(MODELS_DIR, "silero_vad.onnx")
 
 
@@ -75,6 +76,9 @@ def tokens_to_words(tokens, starts, durs, offset):
         if not piece:
             continue
         new_word = tok.startswith(" ") or not words
+        # un número pegado a una palabra ("como6") es una palabra nueva
+        if not new_word and piece[0].isdigit() and words[-1]["text"][-1:].isalpha():
+            new_word = True
         if not new_word or (piece and all(not c.isalnum() for c in piece) and words):
             words[-1]["text"] += piece
             words[-1]["end"] = max(words[-1]["end"], en)
@@ -103,7 +107,7 @@ def run_parakeet(path):
         rec.decode_stream(s)
         r = s.result
         words += tokens_to_words(r.tokens, r.timestamps, r.durations, a / SR)
-    return words, "en"
+    return words, "auto"
 
 
 def run_whisper(path, language):
@@ -123,7 +127,7 @@ def main():
     ap.add_argument("media")
     ap.add_argument("-o", "--out", required=True)
     ap.add_argument("--engine", choices=["parakeet", "whisper"], default="parakeet")
-    ap.add_argument("--language", default="en", help="solo para whisper")
+    ap.add_argument("--language", default=None, help="solo para whisper (default: detecta)")
     args = ap.parse_args()
 
     if args.engine == "parakeet":

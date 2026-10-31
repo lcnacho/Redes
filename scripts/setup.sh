@@ -32,10 +32,10 @@ python3 -c "import sherpa_onnx, numpy" 2>/dev/null || {
 command -v yt-dlp >/dev/null || {
   log "instalando yt-dlp"; pip install -q --break-system-packages yt-dlp 2>/dev/null || pip install -q yt-dlp; }
 
-# 3. Modelos (Parakeet para transcribir, Silero para detectar voz)
-if [ ! -f "$MODELS/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8/encoder.int8.onnx" ]; then
-  log "bajando Parakeet (480 MB)"
-  curl -sSL --retry 3 "$SHERPA_REL/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2" | tar xj -C "$MODELS"
+# 3. Modelos (Parakeet v3 multilingüe para transcribir, Silero para detectar voz)
+if [ ! -f "$MODELS/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/encoder.int8.onnx" ]; then
+  log "bajando Parakeet v3 (490 MB)"
+  curl -sSL --retry 3 "$SHERPA_REL/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2" | tar xj -C "$MODELS"
 fi
 [ -f "$MODELS/silero_vad.onnx" ] || curl -sSL --retry 3 -o "$MODELS/silero_vad.onnx" "$SHERPA_REL/silero_vad.onnx"
 

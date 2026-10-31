@@ -2,7 +2,7 @@
 
 Convierte videos grabados en bruto en Reels, TikToks y Shorts editados (1080×1920), con 3 variantes de hook, sin que la PC de Nacho esté prendida. Corre en sesiones cloud de Claude Code; lo permanente vive en este repo (código, reglas, skills) y en Google Drive (videos y librería de recursos).
 
-Contenido en inglés, nicho negocios y emprendimiento desde China. Referencia de estilo: @jackbloomfield.
+Contenido en inglés o español (el transcriptor detecta el idioma), nicho negocios y emprendimiento desde China. Referencia de estilo: @jackbloomfield.
 
 ## Skills
 - `/editar-video`: el flujo completo, de Drive a Drive. Empezá siempre por acá para editar.
