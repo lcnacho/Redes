@@ -23,6 +23,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("video")
     ap.add_argument("--edl")
+    ap.add_argument("--escuchar", action="store_true",
+                    help="transcribe el render para revisar que los cortes no dejen sílabas sueltas")
     args = ap.parse_args()
     v = args.video
     base = os.path.splitext(v)[0].replace("final_", "qa_final_")
@@ -88,6 +90,14 @@ def main():
     for p in tiles:
         os.remove(p)
     info["contact_sheet"] = f"{base}.jpg"
+
+    # lo que realmente se escucha: se transcribe el render para compararlo con el plan
+    if args.escuchar:
+        tmp = f"{base}_words.json"
+        r = run(["python3", os.path.join(os.path.dirname(__file__), "transcribe.py"), v, "-o", tmp])
+        if r.returncode == 0:
+            info["se_escucha"] = " ".join(w["text"] for w in json.load(open(tmp))["words"])
+            os.remove(tmp)
 
     info["problems"] = problems
     json.dump(info, open(f"{base}.json", "w"), indent=1, ensure_ascii=False)

@@ -13,6 +13,7 @@ Es la única decisión creativa del proceso: Claude lo escribe leyendo `_work/tr
 | `repetir_hook_en_cuerpo` | `true` si la frase del hook también debe sonar en el cuerpo (default `false`) | no |
 | `cortar` | Ids extra a eliminar (relleno, tomas malas) | no |
 | `no_cortar` | Ids que el corte automático marcó pero hay que conservar | no |
+| `ajustes` | `{"w163": {"inicio": 0.07, "fin": -0.03}}` corre unos centésimos el inicio o el fin de un corte cuando se escucha una sílaba de la palabra vecina | no |
 | `correcciones` | `{"w120": "Uruguay,"}` corrige el texto de una palabra en los subtítulos | no |
 | `palabras_clave` | Palabras que van en color de acento en los subtítulos | no |
 | `tarjetas` | `{en: wId, dur: s, texto, sfx?}`: cartel de máx. 6 palabras arriba | no |

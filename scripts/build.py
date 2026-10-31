@@ -85,10 +85,11 @@ def find_sfx(name):
 class Timeline:
     """Convierte rangos de palabras del bruto en tramos de corte y mapea tiempos al video final."""
 
-    def __init__(self, words, cut_ids):
+    def __init__(self, words, cut_ids, ajustes=None):
         self.words = words
         self.idx = {w["id"]: i for i, w in enumerate(words)}
         self.cut = set(cut_ids)
+        self.ajustes = ajustes or {}   # {"w163": {"inicio": 0.07, "fin": -0.03}} corre el punto de corte
 
     def runs(self, rng, exclude=()):
         a, b = rng
@@ -117,6 +118,8 @@ class Timeline:
             s = max(s, self.words[i0 - 1]["end"] + 0.01)
         if i1 + 1 < len(self.words):
             e = min(e, self.words[i1 + 1]["start"] - 0.01)
+        s += self.ajustes.get(run[0]["id"], {}).get("inicio", 0.0)
+        e += self.ajustes.get(run[-1]["id"], {}).get("fin", 0.0)
         return max(0.0, s), min(src_dur, e)
 
 
@@ -243,10 +246,16 @@ class Comp:
 
 
 def word_time(wmap, wid, default=None):
-    for w in wmap:
-        if w["id"] == wid:
-            return w["o_start"]
-    return default
+    """Momento en el video final en que se dice la palabra. Si el hook repite una frase del cuerpo,
+    los efectos se anclan a la aparición en el cuerpo, no a la del hook."""
+    hits = [w for w in wmap if w["id"] == wid]
+    body = [w for w in hits if w["seg_kind"] == "body"]
+    return (body or hits)[0]["o_start"] if hits else default
+
+
+def fit_size(text, base, width=SAFE_W, ratio=0.62):
+    """Tamaño de letra para que una línea de Inter Black no pase el ancho seguro."""
+    return int(min(base, width / (ratio * max(1, len(text)))))
 
 
 def build_composition(plan, hook, segs, wmap, total, proj, style):
@@ -296,7 +305,7 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
             if estilo == "numero-impactante":
                 parts = hook_text.split(" ", 1)
                 big, small = parts[0], parts[1] if len(parts) > 1 else ""
-                size, fill = 230, accent
+                size, fill = fit_size(big, 230), accent
             elif estilo == "stop-doing":
                 fill = "#FF3B30"
             elif estilo == "bn-dramatico":
@@ -328,7 +337,7 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
             c.js.append(f'tl.to("#{hid} .hk, #{hid} .hk2, #{hid} .hks", {{opacity: 0, duration: 0.15, ease: "power2.in"}}, {dur - 0.27:.3f});')
         c.events.append(0.0)
         if HOOK_SFX.get(estilo):
-            c.sfx.append((0.05, HOOK_SFX[estilo], 0.9))
+            c.sfx.append((0.05, HOOK_SFX[estilo], 0.55))   # que no tape la voz del hook
         if hook_end > 0 and seams:
             c.sfx.append((max(0, hook_end - 0.2), "whoosh", 0.55))
 
@@ -402,7 +411,7 @@ def build_composition(plan, hook, segs, wmap, total, proj, style):
             d = float(ef.get("dur", 1.8))
             c.html.append(f'<div id="{eid}" class="clip" data-start="{t:.3f}" data-duration="{d:.3f}" data-track-index="6" '
                           f'style="position:absolute;inset:0;z-index:16"><div class="nm" style="position:absolute;left:{SAFE_X}px;'
-                          f'width:{SAFE_W}px;top:{Y["numero"]}px;text-align:center;font:900 220px/1 Inter;color:{accent};'
+                          f'width:{SAFE_W}px;top:{Y["numero"]}px;text-align:center;font:900 {fit_size(ef["texto"], 220)}px/1 Inter;color:{accent};'
                           f'text-shadow:0 8px 30px rgba(0,0,0,.6)">{esc(ef["texto"])}</div></div>')
             c.js.append(f'tl.from("#{eid} .nm", {{scale: 0.2, opacity: 0, duration: 0.35, ease: "back.out(2.4)"}}, {t:.3f});')
             c.js.append(f'tl.to("#{eid} .nm", {{opacity: 0, scale: 1.1, duration: 0.2}}, {t + d - 0.22:.3f});')
@@ -547,7 +556,7 @@ def main():
     for w in words:
         if w["id"] in fixes:
             w["text"] = fixes[w["id"]]
-    tl = Timeline(words, cut_ids)
+    tl = Timeline(words, cut_ids, plan.get("ajustes"))
     style = plan.get("subtitulos", {})
 
     hooks = plan.get("hooks") or [None]

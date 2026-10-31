@@ -67,6 +67,8 @@ Cuando A está bien, el render final de las tres:
 python3 scripts/build.py <carpeta>                 # calidad "delivery", las 3 variantes + miniatura
 for v in A B C; do python3 scripts/qa.py <carpeta>/salida/final_$v.mp4 --edl <carpeta>/_work/variante_$v/edl.json; done
 ```
+Antes del render final, escuchá el resultado: `qa.py ... --escuchar` transcribe el video renderizado y deja el texto en `se_escucha`. Leelo de corrido: tiene que tener sentido como historia y no debe haber sílabas sueltas en los cortes ("Todo me da" en vez de "Me da"). Si las hay, corregí con `ajustes` en el plan (+0.05 a +0.10 en `inicio` para sacar la cola de la palabra anterior; −0.03 a −0.08 en `fin` para sacar el comienzo de la siguiente).
+
 `qa.py` sale con código 1 si hay un problema (resolución, códecs, volumen fuera de −14 LUFS, cuadros negros o congelados no buscados). No entregues con problemas abiertos.
 
 Tiempos de referencia (4 vCPU): transcribir 60 s de bruto ≈ 10 s; renderizar 25 s de video ≈ 40–70 s por variante.
