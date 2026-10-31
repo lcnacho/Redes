@@ -1,0 +1,14 @@
+node_modules/
+library/sonidos-base/*.wav
+__pycache__/
+*.pyc
+# videos y renders nunca van al repo
+*.mp4
+*.mov
+*.MOV
+*.m4a
+*.wav
+*.mp3
+_work/
+salida/
+.hyperframes/

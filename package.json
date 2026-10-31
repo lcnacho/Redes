@@ -1,0 +1,12 @@
+{
+  "name": "edicion-automatica",
+  "private": true,
+  "description": "Sistema de edición automática de video (Reels, TikTok, Shorts)",
+  "scripts": {
+    "hf": "hyperframes"
+  },
+  "dependencies": {
+    "gsap": "3.15.0",
+    "hyperframes": "0.8.223"
+  }
+}
